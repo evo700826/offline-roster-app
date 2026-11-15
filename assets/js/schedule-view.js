@@ -3,7 +3,28 @@
  */
 function styleCell(meta){let st=meta?.style||meta?.cell_style||{};let fill=st.fill||meta.fill||meta.background||'',color=st.font_color||meta.font_color||'',weight=st.bold?'bold':'normal';let css=[];if(/^#[0-9a-f]{6}$/i.test(fill))css.push('background:'+fill);if(/^#[0-9a-f]{6}$/i.test(color))css.push('color:'+color);css.push('font-weight:'+weight);return css.join(';')}
 function buildGrid(records,target,editable){if(!records.length){target.innerHTML='<tbody><tr><td class="muted">沒有可顯示的班表資料</td></tr></tbody>';return}let dates=[...new Set(records.map(x=>x.date))].sort(),tasks=[...new Set(records.map(x=>x.task))];let html='<thead><tr><th class="row-head">班別／位置</th>'+dates.map(d=>`<th>${esc(d)}</th>`).join('')+'</tr></thead><tbody>';tasks.forEach(task=>{html+=`<tr><th class="row-head">${esc(task)}</th>`;dates.forEach(date=>{let rec=records.find(x=>x.task===task&&x.date===date);if(!rec){html+='<td class="empty">—</td>';return}let pending=editable?pendingForCell(rec.key):null,name=editable?currentName(rec):rec.name,cl=(editable?'editable ':'')+(pending?'pending ':'')+(!name?'empty':'');let click=editable?` onclick="openCellEditor('${esc(rec.key)}')"`:'';html+=`<td class="${cl}" style="${styleCell(rec.meta)}"${click}>${esc(name||'（空白）')}${pending?'<br><small>待確認</small>':''}</td>`});html+='</tr>'});target.innerHTML=html+'</tbody>'}
-let sheetUserZoom=1;function fitExcelSheet(){const box=$('sheetScroll'),table=$('excelSheet');if(!box||!table||!table.rows.length)return;table.style.transform='translate(-50%,-50%) rotate(90deg) scale(1)';table.style.width='max-content';const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;if(!w||!h)return;const fit=Math.min((box.clientWidth-12)/h,(box.clientHeight-12)/w);const scale=fit*sheetUserZoom;table.style.transform=`translate(-50%,-50%) rotate(90deg) scale(${scale})`;const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'%';}function changeSheetZoom(delta){sheetUserZoom=Math.max(.5,Math.min(2.5,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}function resetSheetZoom(){sheetUserZoom=1;fitExcelSheet()}window.addEventListener('resize',()=>requestAnimationFrame(fitExcelSheet));
+let sheetUserZoom=1;
+function fitExcelSheet(){
+ const box=$('sheetScroll'),table=$('excelSheet');
+ if(!box||!table||!table.rows.length)return;
+ table.style.transform='none';
+ table.style.left='0px';table.style.top='0px';table.style.transformOrigin='top left';
+ table.style.width='max-content';
+ const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;
+ if(!w||!h)return;
+ // 旋轉後的橫向尺寸等於原表格高度；以手機可用寬度計算比例，
+ // 長邊改為垂直捲動，不再為了塞進高度而把整張表縮成細長條。
+ const available=Math.max(120,box.clientWidth-16);
+ const scale=Math.min(2.5,Math.max(.5,(available/h)*sheetUserZoom));
+ const rotatedWidth=h*scale;
+ table.style.transform=`translateX(${rotatedWidth}px) rotate(90deg) scale(${scale})`;
+ table.style.marginBottom=(w*scale)+'px';
+ box.scrollTop=0;box.scrollLeft=0;
+ const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(scale*100)+'%';
+}
+function changeSheetZoom(delta){sheetUserZoom=Math.max(.5,Math.min(2.5,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
+function resetSheetZoom(){sheetUserZoom=1;fitExcelSheet()}
+window.addEventListener('resize',()=>requestAnimationFrame(fitExcelSheet));
 function colNum(a){let n=0;for(let c of a)n=n*26+c.charCodeAt(0)-64;return n}
 function colLetters(n){let out='';while(n){let r=(n-1)%26;out=String.fromCharCode(65+r)+out;n=Math.floor((n-1)/26)}return out}
 function excelStyle(c){let x=EXCEL_TEMPLATE.cells[c]||{},f=x.font||{},a=x.align||{},css=[];if(f.name)css.push('font-family:'+f.name+',serif');if(f.size)css.push('font-size:'+f.size+'pt');if(f.bold)css.push('font-weight:bold');if(f.italic)css.push('font-style:italic');if(f.color)css.push('color:'+f.color);if(x.fill)css.push('background:'+x.fill);if(f.color)css.push('color:'+f.color);if(f.color)css.push('color:'+f.color);if(a.h)css.push('text-align:'+({'center':'center','left':'left','right':'right'}[a.h]||'center'));if(a.v)css.push('vertical-align:'+({'center':'middle','top':'top','bottom':'bottom'}[a.v]||'middle'));if(a.wrap)css.push('white-space:pre-wrap');for(let [side,b] of Object.entries(x.border||{})){let [style,color]=b;let width=style==='double'?3:(['medium','thick'].includes(style)?2:1);css.push('border-'+side+':'+width+'px '+(style==='dashed'?'dashed':style==='dotted'?'dotted':'solid')+' '+(color||'#333'))}return css.join(';')}

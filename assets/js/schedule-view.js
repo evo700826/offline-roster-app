@@ -8,16 +8,17 @@ function fitExcelSheet(){
  const box=$('sheetScroll'),table=$('excelSheet');
  if(!box||!table||!table.rows.length)return;
  table.style.transform='none';table.style.left='0px';table.style.top='0px';
- table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';
+ table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';table.style.marginBottom='0';
  const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;
  if(!w||!h)return;
- const available=Math.max(120,box.clientWidth-16);
- const fit=Math.min(2.5,Math.max(.12,available/h));
- const scale=Math.min(4,Math.max(.12,fit*sheetUserZoom));
- const rotatedWidth=h*scale;
- table.style.transform=`translate(${rotatedWidth+sheetPanX}px,${sheetPanY}px) rotate(90deg) scale(${scale})`;
- table.style.marginBottom=(w*scale)+'px';
- const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'%';
+ // 班表保持 Excel 原本橫向（37欄橫排），依預覽框高度放大；
+ // 寬度額外增加 35%，超出畫面部分可用手指拖曳查看。
+ const availableH=Math.max(180,box.clientHeight-16);
+ const fit=Math.max(.12,availableH/h);
+ const scale=Math.min(3,Math.max(.12,fit*sheetUserZoom));
+ const widthScale=scale*1.35;
+ table.style.transform=`translate(${sheetPanX}px,${sheetPanY}px) scale(${widthScale},${scale})`;
+ const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'% · 寬+35%';
 }
 function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
 function resetSheetZoom(){sheetUserZoom=1;sheetPanX=0;sheetPanY=0;fitExcelSheet()}

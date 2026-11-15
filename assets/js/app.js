@@ -1,0 +1,12 @@
+/* 手機 APP 主流程：班表顯示、異動、歷史與資料交換。 */
+const EXCEL_TEMPLATE = window.EXCEL_TEMPLATE;
+const $=id=>document.getElementById(id), PROTOCOL='roster-offline-qr-v1', STORE='roster_phone_185';
+let snapshot=null,baseRevision='',proposals=[],parts={},chunkMeta=null,stream=null,historyItems=[];
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function persist(){try{RosterStorage.save(STORE,{snapshot,baseRevision,proposals,historyItems});renderAll()}catch(e){alert('手機資料保存失敗：'+(e.message||'儲存空間不足')+'。請先回傳待確認修改，並保留目前資料。')}}
+function restore(){let x=RosterStorage.load(STORE);if(x){snapshot=x.snapshot;baseRevision=x.baseRevision;proposals=x.proposals;historyItems=x.historyItems;if(snapshot)addHistory(snapshot);}}
+function setScheduleRange(days){let today=new Date(),end=new Date(today);end.setDate(end.getDate()+days-1);$('scheduleFrom').value=today.toISOString().slice(0,10);$('scheduleTo').value=end.toISOString().slice(0,10);renderScheduleGrid()}
+function templateCurrentValue(coord){let rec=scheduleRecords().find(r=>String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===coord);return rec?currentName(rec):(EXCEL_TEMPLATE.cells[coord]?.v||'')}
+function templateEditable(coord){if(!Array.isArray(EXCEL_TEMPLATE.editable)||!EXCEL_TEMPLATE.editable.includes(coord))return false;const cell=EXCEL_TEMPLATE.cells[coord]||{};if(String(cell.v??'').trim()!=='')return false;for(const m of EXCEL_TEMPLATE.merges||[]){const [a,b]=m.split(':');const ma=a.match(/[A-Z]+/)[0],mb=b.match(/[A-Z]+/)[0],ra=+a.match(/\d+/)[0],rb=+b.match(/\d+/)[0],r=+coord.match(/\d+/)[0],c=colNum(coord.match(/[A-Z]+/)[0]);if(r>=ra&&r<=rb&&c>=colNum(ma)&&c<=colNum(mb))return false;}return true}
+
+function renderAll(){renderExcelSheet();let recs=scheduleRecords();$('status').innerHTML=snapshot?`<span class="badge">已載入班表</span><br>班表格數 ${recs.length}｜人員 ${employees().length}｜待確認修改 ${proposals.length}｜本機歷史版本 ${historyItems.length}`:'尚未載入 Windows 班表';$('changeSummary').textContent=`待確認班表修改 ${proposals.length} 筆`;populateNames();renderProposalList();renderScheduleGrid();if($('tempchange').classList.contains('active'))initTempChange();if($('history').classList.contains('active'))renderHistory()}

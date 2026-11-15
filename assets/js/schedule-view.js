@@ -17,7 +17,7 @@ function fitExcelSheet(){
  const fit=Math.max(.12,availableH/h);
  const scale=Math.min(3,Math.max(.12,fit*sheetUserZoom));
  const widthScale=scale*1.35;
- table.style.transform=`translate(${sheetPanX}px,${sheetPanY}px) scale(${widthScale},${scale*0.7})`;
+ table.style.transform=`translate(${sheetPanX}px,${sheetPanY}px) scale(${widthScale},${scale*0.49})`;
  const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'% · 寬+35%';
 }
 function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}

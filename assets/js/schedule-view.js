@@ -8,13 +8,15 @@ function fitExcelSheet(){
  const box=$('sheetScroll'),table=$('excelSheet');
  if(!box||!table||!table.rows.length)return;
  table.style.transform='none';table.style.left='0px';table.style.top='0px';
- table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';table.style.marginBottom='0';
+ table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';
  const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;
  if(!w||!h)return;
- // 橫向呈現：直接使用預覽框的寬與高，讓整張班表橫放並填滿可用區域。
- const targetW=Math.max(120,box.clientWidth-12),targetH=Math.max(180,box.clientHeight-12);
- const sx=(targetW/w)*sheetUserZoom,sy=(targetH/h)*sheetUserZoom;
- table.style.transform=`translate(${sheetPanX}px,${sheetPanY}px) scale(${sx},${sy})`;
+ const available=Math.max(120,box.clientWidth-16);
+ const fit=Math.min(2.5,Math.max(.12,available/h));
+ const scale=Math.min(4,Math.max(.12,fit*sheetUserZoom));
+ const rotatedWidth=h*scale;
+ table.style.transform=`translate(${rotatedWidth+sheetPanX}px,${sheetPanY}px) rotate(90deg) scale(${scale})`;
+ table.style.marginBottom=(w*scale)+'px';
  const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'%';
 }
 function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}

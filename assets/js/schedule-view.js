@@ -3,32 +3,56 @@
  */
 function styleCell(meta){let st=meta?.style||meta?.cell_style||{};let fill=st.fill||meta.fill||meta.background||'',color=st.font_color||meta.font_color||'',weight=st.bold?'bold':'normal';let css=[];if(/^#[0-9a-f]{6}$/i.test(fill))css.push('background:'+fill);if(/^#[0-9a-f]{6}$/i.test(color))css.push('color:'+color);css.push('font-weight:'+weight);return css.join(';')}
 function buildGrid(records,target,editable){if(!records.length){target.innerHTML='<tbody><tr><td class="muted">沒有可顯示的班表資料</td></tr></tbody>';return}let dates=[...new Set(records.map(x=>x.date))].sort(),tasks=[...new Set(records.map(x=>x.task))];let html='<thead><tr><th class="row-head">班別／位置</th>'+dates.map(d=>`<th>${esc(d)}</th>`).join('')+'</tr></thead><tbody>';tasks.forEach(task=>{html+=`<tr><th class="row-head">${esc(task)}</th>`;dates.forEach(date=>{let rec=records.find(x=>x.task===task&&x.date===date);if(!rec){html+='<td class="empty">—</td>';return}let pending=editable?pendingForCell(rec.key):null,name=editable?currentName(rec):rec.name,cl=(editable?'editable ':'')+(pending?'pending ':'')+(!name?'empty':'');let click=editable?` onclick="openCellEditor('${esc(rec.key)}')"`:'';html+=`<td class="${cl}" style="${styleCell(rec.meta)}"${click}>${esc(name||'（空白）')}${pending?'<br><small>待確認</small>':''}</td>`});html+='</tr>'});target.innerHTML=html+'</tbody>'}
-let sheetUserZoom=1;
+let sheetUserZoom=1,sheetPanX=0,sheetPanY=0,sheetPointers=new Map(),sheetGesture=null;
 function fitExcelSheet(){
  const box=$('sheetScroll'),table=$('excelSheet');
  if(!box||!table||!table.rows.length)return;
- table.style.transform='none';
- table.style.left='0px';table.style.top='0px';table.style.transformOrigin='top left';
- table.style.width='max-content';
+ table.style.transform='none';table.style.left='0px';table.style.top='0px';
+ table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';
  const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;
  if(!w||!h)return;
- // 旋轉後的橫向尺寸等於原表格高度；以手機可用寬度計算比例，
- // 長邊改為垂直捲動，不再為了塞進高度而把整張表縮成細長條。
  const available=Math.max(120,box.clientWidth-16);
- const scale=Math.min(2.5,Math.max(.5,(available/h)*sheetUserZoom));
+ const fit=Math.min(2.5,Math.max(.12,available/h));
+ const scale=Math.min(4,Math.max(.12,fit*sheetUserZoom));
  const rotatedWidth=h*scale;
- table.style.transform=`translateX(${rotatedWidth}px) rotate(90deg) scale(${scale})`;
+ table.style.transform=`translate(${rotatedWidth+sheetPanX}px,${sheetPanY}px) rotate(90deg) scale(${scale})`;
  table.style.marginBottom=(w*scale)+'px';
- box.scrollTop=0;box.scrollLeft=0;
- const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(scale*100)+'%';
+ const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'%';
 }
-function changeSheetZoom(delta){sheetUserZoom=Math.max(.5,Math.min(2.5,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
-function resetSheetZoom(){sheetUserZoom=1;fitExcelSheet()}
+function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
+function resetSheetZoom(){sheetUserZoom=1;sheetPanX=0;sheetPanY=0;fitExcelSheet()}
+function installSheetTouchControls(){
+ const box=$('sheetScroll');if(!box||box.dataset.touchControls==='1')return;box.dataset.touchControls='1';
+ box.style.touchAction='none';
+ const point=e=>({x:e.clientX,y:e.clientY});
+ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+ box.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  box.setPointerCapture?.(e.pointerId);sheetPointers.set(e.pointerId,point(e));
+  if(sheetPointers.size===1){sheetGesture={kind:'pan',x:e.clientX,y:e.clientY,px:sheetPanX,py:sheetPanY}}
+  else if(sheetPointers.size===2){const p=[...sheetPointers.values()];sheetGesture={kind:'pinch',distance:distance(p[0],p[1]),zoom:sheetUserZoom,center:{x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2},px:sheetPanX,py:sheetPanY}}
+  e.preventDefault();
+ });
+ box.addEventListener('pointermove',e=>{
+  if(!sheetPointers.has(e.pointerId))return;sheetPointers.set(e.pointerId,point(e));
+  if(sheetPointers.size===1&&sheetGesture?.kind==='pan'){
+   sheetPanX=sheetGesture.px+(e.clientX-sheetGesture.x);sheetPanY=sheetGesture.py+(e.clientY-sheetGesture.y);fitExcelSheet();
+  }else if(sheetPointers.size>=2&&sheetGesture?.kind==='pinch'){
+   const p=[...sheetPointers.values()],d=distance(p[0],p[1]);
+   sheetUserZoom=Math.max(.25,Math.min(4,sheetGesture.zoom*d/Math.max(1,sheetGesture.distance)));
+   const c={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};
+   sheetPanX=sheetGesture.px+(c.x-sheetGesture.center.x);sheetPanY=sheetGesture.py+(c.y-sheetGesture.center.y);fitExcelSheet();
+  }e.preventDefault();
+ });
+ const finish=e=>{sheetPointers.delete(e.pointerId);sheetGesture=null;if(sheetPointers.size===1){const [id,p]=[...sheetPointers.entries()][0];sheetGesture={kind:'pan',x:p.x,y:p.y,px:sheetPanX,py:sheetPanY}}};
+ box.addEventListener('pointerup',finish);box.addEventListener('pointercancel',finish);box.addEventListener('lostpointercapture',finish);
+}
 window.addEventListener('resize',()=>requestAnimationFrame(fitExcelSheet));
+document.addEventListener('DOMContentLoaded',installSheetTouchControls);
 function colNum(a){let n=0;for(let c of a)n=n*26+c.charCodeAt(0)-64;return n}
 function colLetters(n){let out='';while(n){let r=(n-1)%26;out=String.fromCharCode(65+r)+out;n=Math.floor((n-1)/26)}return out}
 function excelStyle(c){let x=EXCEL_TEMPLATE.cells[c]||{},f=x.font||{},a=x.align||{},css=[];if(f.name)css.push('font-family:'+f.name+',serif');if(f.size)css.push('font-size:'+f.size+'pt');if(f.bold)css.push('font-weight:bold');if(f.italic)css.push('font-style:italic');if(f.color)css.push('color:'+f.color);if(x.fill)css.push('background:'+x.fill);if(f.color)css.push('color:'+f.color);if(f.color)css.push('color:'+f.color);if(a.h)css.push('text-align:'+({'center':'center','left':'left','right':'right'}[a.h]||'center'));if(a.v)css.push('vertical-align:'+({'center':'middle','top':'top','bottom':'bottom'}[a.v]||'middle'));if(a.wrap)css.push('white-space:pre-wrap');for(let [side,b] of Object.entries(x.border||{})){let [style,color]=b;let width=style==='double'?3:(['medium','thick'].includes(style)?2:1);css.push('border-'+side+':'+width+'px '+(style==='dashed'?'dashed':style==='dotted'?'dotted':'solid')+' '+(color||'#333'))}return css.join(';')}
-function renderExcelSheet(){let t=EXCEL_TEMPLATE,covered=new Set(),mergeMap={};t.merges.forEach(m=>{let [a,b]=m.split(':');let ma=a.match(/[A-Z]+/)[0],mb=b.match(/[A-Z]+/)[0],ra=+a.match(/\d+/)[0],rb=+b.match(/\d+/)[0],cs=colNum(mb)-colNum(ma)+1,rs=rb-ra+1;mergeMap[a]={cs,rs};for(let r=ra;r<=rb;r++)for(let c=colNum(ma);c<=colNum(mb);c++){let q=colLetters(c)+r;if(q!==a)covered.add(q)}});
+function renderExcelSheet(){installSheetTouchControls();let t=EXCEL_TEMPLATE,covered=new Set(),mergeMap={};t.merges.forEach(m=>{let [a,b]=m.split(':');let ma=a.match(/[A-Z]+/)[0],mb=b.match(/[A-Z]+/)[0],ra=+a.match(/\d+/)[0],rb=+b.match(/\d+/)[0],cs=colNum(mb)-colNum(ma)+1,rs=rb-ra+1;mergeMap[a]={cs,rs};for(let r=ra;r<=rb;r++)for(let c=colNum(ma);c<=colNum(mb);c++){let q=colLetters(c)+r;if(q!==a)covered.add(q)}});
  let html='<colgroup>';for(let c=1;c<=t.cols;c++){let key=colLetters(c);html+=`<col style=\"width:${Math.floor((t.colwidth[key]||9)*7+5)}px\">`}html+='</colgroup><tbody>';
  for(let r=1;r<=t.rows;r++){html+=`<tr style=\"height:${t.rowheight[r]||22}pt\">`;for(let c=1;c<=t.cols;c++){let coord=colLetters(c)+r;if(covered.has(coord))continue;let x=t.cells[coord]||{v:''},base=templateCurrentValue(coord),p=templateProposal(coord),v=p?(p.changes[0].new_name||''):base,m=mergeMap[coord]||{},editable=templateEditable(coord);let cls=(editable?'sheet-edit ':'')+(p?'sheet-pending':'');let click=editable?`onclick=\"openTemplateEditor('${coord}')\"`:'';html+=`<td class=\"${cls}\" style=\"${excelStyle(coord)}\" ${m.cs?`colspan=\"${m.cs}\"`:''} ${m.rs?`rowspan=\"${m.rs}\"`:''} ${click}>${esc(v)}</td>`}html+='</tr>'}html+='</tbody>';$('excelSheet').innerHTML=html;requestAnimationFrame(()=>fitExcelSheet());$('sheetStatus').textContent=`原始格式：${t.sheet}｜${t.rows}列×${t.cols}欄｜合併儲存格 ${t.merges.length} 處｜可修改格 ${t.editable.length} 格｜待確認修改 ${proposals.filter(p=>p.changes?.[0]?.cell_key?.match(/^[A-Z]+\d+$/)).length} 筆`}
 function renderScheduleGrid(){let all=scheduleRecords(),rows=visibleScheduleRecords();if(!snapshot){$('scheduleState').textContent='尚未匯入';$('scheduleNotice').textContent='請先到「資料交換」匯入 Windows 班表。';$('scheduleGrid').innerHTML='<tbody><tr><td>尚未匯入班表資料</td></tr></tbody>';return}if(!all.length){$('scheduleState').textContent='快照未含班表';$('scheduleNotice').textContent='Windows 匯出資料缺少可辨識的 schedule_cells／schedule_entries。請先補齊匯出欄位，手機不會自行編造班表。';$('scheduleGrid').innerHTML='<tbody><tr><td>沒有班表格資料</td></tr></tbody>';return}if(!rows.length){$('scheduleState').textContent=`共 ${all.length} 格`;$('scheduleGrid').innerHTML='<tbody><tr><td>所選日期範圍沒有班表資料</td></tr></tbody>';return}buildGrid(rows,$('scheduleGrid'),true);$('scheduleState').textContent=`${new Set(rows.map(x=>x.date)).size} 日｜${new Set(rows.map(x=>x.task)).size} 個班別｜${proposals.length} 筆待確認`}

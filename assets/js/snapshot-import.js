@@ -69,8 +69,8 @@ async function convertWindowsFullBackup(zipFiles,manifest){
     const backupSettings={
       employees,skills:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rows:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rank_rows:skillRows,
       leave_entries:leaveEntries,leaves:sqlRows(db,'leaves'),fixed_slots:fixedSlots,fixed:fixedLegacy,
-      settings,rotation_details:rotationDetails,yesterday,
-      schedule_cells:scheduleCells,
+      settings,rotation_details:rotationDetails,rotation_details_json:rotationDetailsJson,yesterday,
+      sheet_matrix:{rows:sheetRows,cols:sheetCols,cells:sheetMatrix},schedule_cells:scheduleCells,
       backup_info:{format:manifest.format,version:manifest.version,app_version:manifest.app_version,exported_at:manifest.exported_at,roster_date:rosterDate,schedule_history_count:scheduleHistory.length,source:'Windows 完整備份 ZIP'}
     };
     const digest=await crypto.subtle.digest('SHA-256',sqliteBytes);

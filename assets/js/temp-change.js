@@ -12,7 +12,21 @@ function skillMapFrom(d){let map=new Map(),raw=d.skills||d.skill_rows||d.skill_m
 function restRecordsFor(d,date){let out=[];for(let k of ['rest_cells','rest_entries','vacation_cells','vacation_entries','leave_entries','absence_entries','daily_rest','rest_schedule','vacations']){let raw=d[k];if(!raw)continue;if(Array.isArray(raw))raw.forEach(x=>{if(!x||typeof x!=='object')return;let dt=String(x.date||x.day||x.work_date||'').slice(0,10);let name=normName(x.employee_name||x.name||x.person);let type=normName(x.task||x.type||x.reason||x.status||k);if(dt===date&&name)out.push({name,type,raw:x})});else if(typeof raw==='object')Object.entries(raw).forEach(([dt,vals])=>{if(String(dt).slice(0,10)!==date)return;(Array.isArray(vals)?vals:[vals]).forEach(v=>{let name=normName(typeof v==='string'?v:(v?.employee_name||v?.name||v?.person));if(name)out.push({name,type:normName(v?.type||v?.reason||k),raw:v})})})}return out}
 function dateAssigned(records,date){return records.filter(x=>x.date===date&&normName(x.name)&&!/(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假)/.test(x.task))}
 function isRestOrLeaveType(t){return /(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假|休)/.test(t||'')}
-function eligibleNewNames(ctx,date){let assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name))),rawEmployees=ctx.data.employees||ctx.data.personnel||[],names=new Set(rawEmployees.map(x=>normName(typeof x==='string'?x:(x.name||x.employee_name))).filter(Boolean));ctx.records.filter(x=>x.date===date&&normName(x.name)&&isRestOrLeaveType(x.task)).forEach(x=>names.add(normName(x.name)));restRecordsFor(ctx.data,date).forEach(x=>names.add(x.name));return [...names].filter(n=>!assigned.has(n)).sort((a,b)=>a.localeCompare(b,'zh-Hant'))}
+function eligibleNewNames(ctx,date){
+ // 以 Windows 原始班表第13列 B:U 的輪休名單作為唯一新增候選來源。
+ // 不可用「146名員工－工作班表」反推，否則病假、身心假及其他缺勤者會被誤列為未排班候選人。
+ const matrix=ctx.data?.sheet_matrix?.cells;
+ if(Array.isArray(matrix)&&matrix.length){
+  const names=matrix.filter(x=>Number(x.row)===13&&Number(x.col)>=2&&Number(x.col)<=21)
+   .map(x=>normName(x.value)).filter(Boolean);
+  const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
+  return [...new Set(names)].filter(n=>!assigned.has(n)).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+ }
+ // 舊格式沒有完整矩陣時，只接受班表明確標示為輪休的儲存格；不把所有未出現在工作槽位的人都當候選。
+ const rest=ctx.records.filter(x=>x.date===date&&/^(休\s*\d+|輪休)$/.test(normName(x.task))&&normName(x.name)).map(x=>normName(x.name));
+ const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
+ return [...new Set(rest)].filter(n=>!assigned.has(n)).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+}
 function roleRank(sk,role,name){let a=sk.get(normName(role))||[];let i=a.indexOf(normName(name));return i<0?9999:i}
 function isSkilled(sk,name,role){return roleRank(sk,role,name)!==9999}
 function findMinimumChainPhone(slots,sk,newName,startIndex){ // BFS mirrors the desktop VBA: fewest occupied job slots moved

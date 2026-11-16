@@ -13,19 +13,21 @@ function restRecordsFor(d,date){let out=[];for(let k of ['rest_cells','rest_entr
 function dateAssigned(records,date){return records.filter(x=>x.date===date&&normName(x.name)&&!/(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假)/.test(x.task))}
 function isRestOrLeaveType(t){return /(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假|休)/.test(t||'')}
 function eligibleNewNames(ctx,date){
- // 以 Windows 原始班表第13列 B:U 的輪休名單作為唯一新增候選來源。
- // 不可用「146名員工－工作班表」反推，否則病假、身心假及其他缺勤者會被誤列為未排班候選人。
- const matrix=ctx.data?.sheet_matrix?.cells;
- if(Array.isArray(matrix)&&matrix.length){
-  const names=matrix.filter(x=>Number(x.row)===13&&Number(x.col)>=2&&Number(x.col)<=21)
-   .map(x=>normName(x.value)).filter(Boolean);
-  const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
-  return [...new Set(names)].filter(n=>!assigned.has(n)).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
- }
- // 舊格式沒有完整矩陣時，只接受班表明確標示為輪休的儲存格；不把所有未出現在工作槽位的人都當候選。
- const rest=ctx.records.filter(x=>x.date===date&&/^(休\s*\d+|輪休)$/.test(normName(x.task))&&normName(x.name)).map(x=>normName(x.name));
  const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
- return [...new Set(rest)].filter(n=>!assigned.has(n)).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+ const clean=values=>[...new Set(values.map(normName).filter(Boolean))].filter(n=>!assigned.has(n)).sort((x,y)=>x.localeCompare(y,'zh-Hant'));
+ // 優先讀完整矩陣第13列 B:U；若該列在匯入快照中為空，不可直接回傳空清單。
+ const matrix=ctx.data?.sheet_matrix?.cells;
+ let names=Array.isArray(matrix)?matrix.filter(x=>Number(x.row)===13&&Number(x.col)>=2&&Number(x.col)<=21).map(x=>x.value):[];
+ if(names.some(x=>normName(x)))return clean(names);
+ // 相容從 Windows 匯入的原始 yesterday 表格資料。
+ const raw=ctx.data?.yesterday;
+ if(Array.isArray(raw)){
+  const rawNames=raw.filter(x=>Number(x.row_no)===13&&Number(x.col_no)>=2&&Number(x.col_no)<=21).map(x=>x.value);
+  if(rawNames.some(x=>normName(x)))return clean(rawNames);
+ }
+ // 舊版快照沒有矩陣時，從同日 schedule_cells 的輪休槽位取得名單。
+ const rest=ctx.records.filter(x=>x.date===date&&/(^休\s*\d+$|輪休)/.test(normName(x.task))&&normName(x.name)).map(x=>x.name);
+ return clean(rest);
 }
 function roleRank(sk,role,name){let a=sk.get(normName(role))||[];let i=a.indexOf(normName(name));return i<0?9999:i}
 function isSkilled(sk,name,role){return roleRank(sk,role,name)!==9999}
@@ -40,7 +42,7 @@ function findMinimumChainPhone(slots,sk,newName,startIndex){ // BFS mirrors the 
  return null;
 }
 function loadTempDates(){let ctx=selectedTempData(),sel=$('tempDate');sel.innerHTML='<option value="">選擇日期</option>';if(!ctx)return;[...new Set(ctx.records.map(x=>x.date))].sort().forEach(d=>sel.insertAdjacentHTML('beforeend',`<option value="${esc(d)}">${esc(d)}</option>`));if(sel.options.length>1)sel.selectedIndex=1;loadTempPeople()}
-function loadTempPeople(){tempPlan=null;let ctx=selectedTempData(),date=$('tempDate').value;if(!ctx||!date){$('tempDataNotice').textContent='請先選擇有班表資料的日期。';renderTempPairs();return}let assigned=dateAssigned(ctx.records,date),eligible=eligibleNewNames(ctx,date),sk=skillMapFrom(ctx.data);let rest=restRecordsFor(ctx.data,date);$('tempDataNotice').textContent=`${date}｜當日工作槽位 ${assigned.length} 格｜輪休／休假候選 ${eligible.length} 人｜技能班別 ${sk.size} 項｜另有明確休假紀錄 ${rest.length} 筆。`+(sk.size?'':' 尚未取得技能順位資料，無法執行演算。')+(eligible.length?'':' 尚未取得當日輪休／休假候選資料，無法選擇新增人員。');renderTempPairs()}
+function loadTempPeople(){tempPlan=null;let ctx=selectedTempData(),date=$('tempDate').value;if(!ctx||!date){$('tempDataNotice').textContent='請先選擇有班表資料的日期。';renderTempPairs();return}let assigned=dateAssigned(ctx.records,date),eligible=eligibleNewNames(ctx,date),sk=skillMapFrom(ctx.data);let rest=restRecordsFor(ctx.data,date);$('tempDataNotice').textContent=`${date}｜當日工作槽位 ${assigned.length} 格｜實際輪休候選 ${eligible.length} 人（只讀班表輪休列）｜技能班別 ${sk.size} 項｜另有明確休假紀錄 ${rest.length} 筆。`+(sk.size?'':' 尚未取得技能順位資料，無法執行演算。')+(eligible.length?'':' 尚未取得當日輪休／休假候選資料，無法選擇新增人員。');renderTempPairs()}
 function renderTempPairs(){let ctx=selectedTempData(),date=$('tempDate')?.value||'',assigned=ctx?dateAssigned(ctx.records,date):[],eligible=ctx?eligibleNewNames(ctx,date):[];$('tempPairs').innerHTML=tempPairs.map((p,i)=>`<div class="row"><b>第 ${i+1} 組</b><div class="grid2"><div><label>新增人員（當日未排班）</label><select id="tempAdd${i}"><option value="">選擇新增人員</option>${eligible.map(n=>`<option ${p.add===n?'selected':''} value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div><div><label>移除人員（當日已排班）</label><select id="tempRemove${i}"><option value="">選擇移除人員</option>${assigned.map(x=>normName(x.name)).filter((n,j,a)=>a.indexOf(n)===j).map(n=>`<option ${p.remove===n?'selected':''} value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div></div>${i>0?`<button class="smallbtn danger" onclick="removeTempPair(${i})">刪除此組</button>`:''}</div>`).join('')}
 function syncTempPairs(){tempPairs=tempPairs.map((p,i)=>({add:$(`tempAdd${i}`)?.value||'',remove:$(`tempRemove${i}`)?.value||''}))}
 function addTempPair(){syncTempPairs();if(tempPairs.length>=3)return alert('電腦版目前配對輸入區為三組，手機先保持一致。');tempPairs.push({add:'',remove:''});renderTempPairs()}

@@ -3,25 +3,24 @@
  */
 function styleCell(meta){let st=meta?.style||meta?.cell_style||{};let fill=st.fill||meta.fill||meta.background||'',color=st.font_color||meta.font_color||'',weight=st.bold?'bold':'normal';let css=[];if(/^#[0-9a-f]{6}$/i.test(fill))css.push('background:'+fill);if(/^#[0-9a-f]{6}$/i.test(color))css.push('color:'+color);css.push('font-weight:'+weight);return css.join(';')}
 function buildGrid(records,target,editable){if(!records.length){target.innerHTML='<tbody><tr><td class="muted">沒有可顯示的班表資料</td></tr></tbody>';return}let dates=[...new Set(records.map(x=>x.date))].sort(),tasks=[...new Set(records.map(x=>x.task))];let html='<thead><tr><th class="row-head">班別／位置</th>'+dates.map(d=>`<th>${esc(d)}</th>`).join('')+'</tr></thead><tbody>';tasks.forEach(task=>{html+=`<tr><th class="row-head">${esc(task)}</th>`;dates.forEach(date=>{let rec=records.find(x=>x.task===task&&x.date===date);if(!rec){html+='<td class="empty">—</td>';return}let pending=editable?pendingForCell(rec.key):null,name=editable?currentName(rec):rec.name,cl=(editable?'editable ':'')+(pending?'pending ':'')+(!name?'empty':'');let click=editable?` onclick="openCellEditor('${esc(rec.key)}')"`:'';html+=`<td class="${cl}" style="${styleCell(rec.meta)}"${click}>${esc(name||'（空白）')}${pending?'<br><small>待確認</small>':''}</td>`});html+='</tr>'});target.innerHTML=html+'</tbody>'}
-let sheetUserZoom=1.7,sheetPanX=0,sheetPanY=0,sheetPointers=new Map(),sheetGesture=null;
+let sheetUserZoom=1,sheetPanX=0,sheetPanY=0,sheetPointers=new Map(),sheetGesture=null;
 function fitExcelSheet(){
  const box=$('sheetScroll'),table=$('excelSheet');
  if(!box||!table||!table.rows.length)return;
- table.style.transform='none';table.style.left='0px';table.style.top='0px';
- table.style.position='absolute';table.style.transformOrigin='top left';table.style.width='max-content';table.style.marginBottom='0';
+ table.style.transform='none';table.style.left='50%';table.style.top='50%';
+ table.style.position='absolute';table.style.transformOrigin='center center';table.style.width='max-content';table.style.margin='0';
  const w=table.offsetWidth||table.scrollWidth,h=table.offsetHeight||table.scrollHeight;
  if(!w||!h)return;
- // 班表保持 Excel 原本橫向（37欄橫排），依預覽框高度放大；
- // 預設放大至較易辨識；超出手機畫面部分可用手指拖曳查看。
- const availableH=Math.max(180,box.clientHeight-16);
- const fit=Math.max(.12,availableH/h);
- const scale=Math.min(3,Math.max(.12,fit*sheetUserZoom));
- const widthScale=scale*1.35;
- table.style.transform=`translate(${sheetPanX}px,${sheetPanY}px) scale(${widthScale},${scale})`;
- const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'% · 可拖曳查看';
+ // 手機保持直向，只有整張 Excel 班表順時針旋轉 90 度。
+ // 旋轉後外框尺寸為 h × w，預設完整放入預覽框，放大後仍可拖曳查看。
+ const availableW=Math.max(180,box.clientWidth-16),availableH=Math.max(180,box.clientHeight-16);
+ const fit=Math.min(availableW/h,availableH/w);
+ const scale=Math.max(.05,Math.min(3,fit*sheetUserZoom));
+ table.style.transform=`translate(calc(-50% + ${sheetPanX}px),calc(-50% + ${sheetPanY}px)) rotate(90deg) scale(${scale})`;
+ const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'% · 班表橫式90°';
 }
 function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
-function resetSheetZoom(){sheetUserZoom=1.7;sheetPanX=0;sheetPanY=0;fitExcelSheet()}
+function resetSheetZoom(){sheetUserZoom=1;sheetPanX=0;sheetPanY=0;fitExcelSheet()}
 function installSheetTouchControls(){
  const box=$('sheetScroll');if(!box||box.dataset.touchControls==='1')return;box.dataset.touchControls='1';
  box.style.touchAction='none';

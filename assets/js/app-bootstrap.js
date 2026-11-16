@@ -18,7 +18,7 @@ function bindAppEvents(){
         video:{
           facingMode:{ideal:'environment'},
           width:{ideal:1920},height:{ideal:1080},
-          frameRate:{ideal:20,max:30}
+          frameRate:{ideal:24,max:30}
         }
       });
       const video=$('video');
@@ -43,18 +43,18 @@ function bindAppEvents(){
       $('scanProgress').textContent='後鏡頭已啟動。請讓 QR Code 完整進入畫面，保持手機穩定約 1–2 秒。';
       const scanFrame=async(now)=>{
         if(!stream||stopped)return;
-        if(!busy&&video.readyState>=2&&video.videoWidth>0&&now-lastScan>100){
+        if(!busy&&video.readyState>=2&&video.videoWidth>0&&now-lastScan>180){
           busy=true;lastScan=now;frames++;
           try{
             let raw='';
             // 先以 jsQR 直接解原始相機影像，避免原生辨識器在部分 Safari 上漏掃。
             if(window.jsQR){
-              const scale=Math.min(1,1600/Math.max(video.videoWidth,video.videoHeight));
+              const scale=Math.min(1,1920/Math.max(video.videoWidth,video.videoHeight));
               canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
               canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
               ctx.drawImage(video,0,0,canvas.width,canvas.height);
               const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
-              const decoded=window.jsQR(frame.data,frame.width,frame.height,{inversionAttempts:'dontInvert'});
+              const decoded=window.jsQR(frame.data,frame.width,frame.height,{inversionAttempts:'attemptBoth'});
               if(decoded)raw=decoded.data||'';
             }
             if(!raw&&detector){

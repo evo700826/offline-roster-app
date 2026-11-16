@@ -60,8 +60,8 @@ async function convertWindowsFullBackup(zipFiles,manifest){
     const rotationDetails=sqlRows(db,'rotation_details').map(x=>({...x,metrics:(()=>{try{return JSON.parse(x.metrics||'[]')}catch(_){return []}})()}));
     const scheduleHistory=sqlRows(db,'schedule_history');
     const backupSettings={
-      employees,skills:skillRows,skill_rows:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),
-      leave_entries:leaveEntries,fixed_slots:fixedSlots,fixed:fixedLegacy,
+      employees,skills:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rows:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rank_rows:skillRows,
+      leave_entries:leaveEntries,leaves:sqlRows(db,'leaves'),fixed_slots:fixedSlots,fixed:fixedLegacy,
       settings,rotation_details:rotationDetails,yesterday,
       schedule_cells:scheduleCells,
       backup_info:{format:manifest.format,version:manifest.version,app_version:manifest.app_version,exported_at:manifest.exported_at,roster_date:rosterDate,schedule_history_count:scheduleHistory.length,source:'Windows 完整備份 ZIP'}

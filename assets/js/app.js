@@ -6,10 +6,11 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function persist(){try{RosterStorage.save(STORE,{snapshot,baseRevision,proposals,historyItems});renderAll()}catch(e){alert('手機資料保存失敗：'+(e.message||'儲存空間不足')+'。請先回傳待確認修改，並保留目前資料。')}}
 function restore(){let x=RosterStorage.load(STORE);if(x){snapshot=x.snapshot;baseRevision=x.baseRevision;proposals=x.proposals;historyItems=x.historyItems;if(snapshot)addHistory(snapshot);}}
 function setScheduleRange(days){let today=new Date(),end=new Date(today);end.setDate(end.getDate()+days-1);$('scheduleFrom').value=today.toISOString().slice(0,10);$('scheduleTo').value=end.toISOString().slice(0,10);renderScheduleGrid()}
-function templateCurrentValue(coord){
- const full=snapshot?.data?.sheet_matrix;
+function templateCurrentValue(coord,sourceData=snapshot?.data){
+ const full=sourceData?.sheet_matrix;
  if(full?.cells?.length){const hit=full.cells.find(x=>String(x.cell||'').toUpperCase()===coord);if(hit)return String(hit.value??'')}
- let rec=scheduleRecords().find(r=>String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===coord);
+ const recs=sourceData===snapshot?.data?scheduleRecords():normalizeRecords(sourceData||{});
+ let rec=recs.find(r=>String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===coord);
  return rec?currentName(rec):(EXCEL_TEMPLATE.cells[coord]?.v||'')
 }
 function templateEditable(coord){if(!Array.isArray(EXCEL_TEMPLATE.editable)||!EXCEL_TEMPLATE.editable.includes(coord))return false;const cell=EXCEL_TEMPLATE.cells[coord]||{};if(String(cell.v??'').trim()!=='')return false;for(const m of EXCEL_TEMPLATE.merges||[]){const [a,b]=m.split(':');const ma=a.match(/[A-Z]+/)[0],mb=b.match(/[A-Z]+/)[0],ra=+a.match(/\d+/)[0],rb=+b.match(/\d+/)[0],r=+coord.match(/\d+/)[0],c=colNum(coord.match(/[A-Z]+/)[0]);if(r>=ra&&r<=rb&&c>=colNum(ma)&&c<=colNum(mb))return false;}return true}

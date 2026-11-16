@@ -58,6 +58,13 @@ async function convertWindowsFullBackup(zipFiles,manifest){
       }
     }
     const rotationDetails=sqlRows(db,'rotation_details').map(x=>({...x,metrics:(()=>{try{return JSON.parse(x.metrics||'[]')}catch(_){return []}})()}));
+    let rotationDetailsJson=null;
+    if(zipFiles['rotation_details.json']){try{rotationDetailsJson=JSON.parse(new TextDecoder().decode(zipFiles['rotation_details.json']))}catch(_){rotationDetailsJson=null}}
+    // 完整保存 16×37 儲存格矩陣，包含空白格；不再只擷取人員名單列。
+    const sheetRows=16,sheetCols=37,sheetMatrix=[];
+    for(let row=1;row<=sheetRows;row++)for(let col=1;col<=sheetCols;col++){
+      sheetMatrix.push({row,col,cell:excelCol(col)+row,value:String(matrix.get(row+'|'+col)??'')});
+    }
     const scheduleHistory=sqlRows(db,'schedule_history');
     const backupSettings={
       employees,skills:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rows:Object.entries(skillMap).map(([task,names])=>({task,employees:names})),skill_rank_rows:skillRows,
@@ -70,7 +77,7 @@ async function convertWindowsFullBackup(zipFiles,manifest){
     const revision=[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
     const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('backup-'+Date.now()),base_revision:revision,data:backupSettings,created_at:manifest.exported_at||new Date().toISOString(),source:'windows-full-backup'};
     validateSnapshotData(snap);
-    return {snap,counts:{employees:employees.length,skills:skillRows.length,leaves:leaveEntries.length,fixed:fixedSlots.length,rotation:rotationDetails.length,schedule:scheduleCells.length,scheduleHistory:scheduleHistory.length,rosterDate}};
+    return {snap,counts:{employees:employees.length,skills:skillRows.length,leaves:leaveEntries.length,fixed:fixedSlots.length,rotation:rotationDetails.length,schedule:scheduleCells.length,sheetCells:sheetMatrix.length,scheduleHistory:scheduleHistory.length,rosterDate}};
   }finally{db.close()}
 }
 async function importSnapshotFile(){
@@ -88,8 +95,8 @@ async function importSnapshotFile(){
       acceptSnapshot(converted.snap);
       const q=converted.counts;
       let note='已讀取 Windows 完整備份：人員 '+q.employees+' 人、技能 '+q.skills+' 筆、預定休假 '+q.leaves+' 筆、固定區段 '+q.fixed+' 筆、輪休明細 '+q.rotation+' 人。';
-      if(q.scheduleHistory===0)note+='\n注意：此備份沒有正式班表歷史資料；手機目前載入的是昨日班表 '+(q.rosterDate||'（未取得日期）')+'，共 '+q.schedule+' 格。';
-      else note+='\n正式班表歷史 '+q.scheduleHistory+' 筆；手機快照仍以昨日班表作為目前可見表格。';
+      if(q.scheduleHistory===0)note+='\n注意：此備份沒有正式班表歷史資料；手機已還原完整 16×37 班表矩陣，共 '+q.sheetCells+' 個儲存格（含空白位置）；日期 '+(q.rosterDate||'未取得')+'。';
+      else note+='\n正式班表歷史 '+q.scheduleHistory+' 筆；手機目前顯示完整 16×37 班表矩陣。';
       $('fileImportStatus').textContent=note;
       alert('Windows 完整備份已匯入手機。\n'+note);
       return;

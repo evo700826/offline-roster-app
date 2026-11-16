@@ -1,6 +1,6 @@
 /* Excel XLSX 班表成品匯入：只更新班表矩陣，不覆蓋既有完整備份設定。 */
 function xlsxColNumber(ref){let m=String(ref).match(/[A-Z]+/i);if(!m)return 0;let n=0;for(const c of m[0].toUpperCase())n=n*26+c.charCodeAt(0)-64;return n}
-function xlsxDateFromMatrix(matrix){const raw=String(matrix.get('1|23')||'')+' '+String(matrix.get('1|24')||'');let m=raw.match(/(20\\d{2})\\s*年\\s*(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日/);if(!m)m=raw.match(/(20\\d{2})[-/](\\d{1,2})[-/](\\d{1,2})/);return m?m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0'):''}
+function xlsxDateFromMatrix(matrix){const raw=String(matrix.get('1|23')||'')+' '+String(matrix.get('1|24')||'');let m=raw.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);if(!m)m=raw.match(/(20\d{2})[-/](\d{1,2})[-/](\d{1,2})/);return m?m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0'):''}
 function xlsxTextNodes(doc,tag){return [...doc.getElementsByTagName(tag)]}
 async function importScheduleXlsx(){
  try{
@@ -23,7 +23,7 @@ async function importScheduleXlsx(){
   const matrix=new Map();
   for(const c of xlsxTextNodes(sheet,'c')){
    const ref=c.getAttribute('r');if(!ref)continue;
-   const m=ref.match(/([A-Z]+)(\\d+)/i);if(!m)continue;
+   const m=ref.match(/([A-Z]+)(\d+)/i);if(!m)continue;
    const row=Number(m[2]),col=xlsxColNumber(ref);let value='';
    const type=c.getAttribute('t'),v=xlsxTextNodes(c,'v')[0];
    if(type==='s'&&v)value=shared[Number(v.textContent)]??'';

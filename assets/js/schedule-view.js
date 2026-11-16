@@ -21,7 +21,7 @@ function fitExcelSheet(){
  const label=$('sheetZoomLabel');if(label)label.textContent=Math.round(sheetUserZoom*100)+'% · 可拖曳查看';
 }
 function changeSheetZoom(delta){sheetUserZoom=Math.max(.25,Math.min(4,Math.round((sheetUserZoom+delta)*100)/100));fitExcelSheet()}
-function resetSheetZoom(){sheetUserZoom=1;sheetPanX=0;sheetPanY=0;fitExcelSheet()}
+function resetSheetZoom(){sheetUserZoom=1.7;sheetPanX=0;sheetPanY=0;fitExcelSheet()}
 function installSheetTouchControls(){
  const box=$('sheetScroll');if(!box||box.dataset.touchControls==='1')return;box.dataset.touchControls='1';
  box.style.touchAction='none';

@@ -45,14 +45,25 @@ async function importScheduleXlsx(){
    pages.push(xlsxBuildPage(matrix,node.getAttribute('name')||('工作表'+(pages.length+1))));
   }
   if(!pages.length)throw Error('沒有可讀取的 Excel 工作表');
-  const allCells=pages.flatMap(p=>p.schedule_cells),allPeople=new Set(pages.flatMap(p=>p.people));
+  const prior=snapshot?.data||{};
+  const existingPages=Array.isArray(prior.schedule_pages)?prior.schedule_pages:[];
+  const pageKey=p=>String(p.date||p.title||'').trim();
+  const existingKeys=new Set(existingPages.map(pageKey));
+  const addedPages=pages.filter(p=>!existingKeys.has(pageKey(p)));
+  const duplicatePages=pages.filter(p=>existingKeys.has(pageKey(p)));
+  const mergedPages=[...existingPages,...addedPages].sort((a,b)=>pageKey(a).localeCompare(pageKey(b)));
+  const allCells=mergedPages.flatMap(p=>p.schedule_cells||[]),allPeople=new Set(mergedPages.flatMap(p=>p.people||[]));
   const date=pages[0].date;
   const bytes=new Uint8Array(await file.arrayBuffer()),digest=await crypto.subtle.digest('SHA-256',bytes),revision=[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
-  const prior=snapshot?.data||{},employees=Array.isArray(prior.employees)&&prior.employees.length?prior.employees:[...allPeople].map(name=>({emp_id:'',name,status:'在職'}));
-  const data={...prior,employees,sheet_matrix:pages[0].sheet_matrix,schedule_pages:pages,active_schedule_date:pages[0].date,schedule_cells:allCells,schedule_entries:allCells,backup_info:{...(prior.backup_info||{}),source:'Windows XLSX 班表成品',xlsx_filename:file.name,roster_date:date,schedule_dates:pages.map(p=>p.date)}};
+  const priorEmployees=Array.isArray(prior.employees)?prior.employees:[];
+  const employeeNames=new Set(priorEmployees.map(x=>typeof x==='string'?x:x?.name).filter(Boolean));
+  const employees=[...priorEmployees,...[...allPeople].filter(name=>!employeeNames.has(name)).map(name=>({emp_id:'',name,status:'在職'}))];
+  const activeKey=addedPages.length?pageKey(addedPages[0]):String(prior.active_schedule_date||mergedPages[0]?.date||'');
+  const activePage=mergedPages.find(p=>pageKey(p)===activeKey)||mergedPages[0];
+  const data={...prior,employees,sheet_matrix:activePage?.sheet_matrix||pages[0].sheet_matrix,schedule_pages:mergedPages,active_schedule_date:activePage?.date||'',schedule_cells:allCells,schedule_entries:allCells,backup_info:{...(prior.backup_info||{}),source:'Windows XLSX 班表成品',xlsx_filename:file.name,roster_date:date,schedule_dates:mergedPages.map(p=>p.date||p.title),xlsx_import_files:[...(prior.backup_info?.xlsx_import_files||[]),file.name]}};
   const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('xlsx-'+Date.now()),base_revision:revision,data,created_at:new Date().toISOString(),source:'windows-xlsx-product'};
   validateSnapshotData(snap);acceptSnapshot(snap);
-  $('xlsxImportStatus').textContent='匯入成功：'+file.name+'｜共 '+pages.length+' 天｜日期 '+pages.map(p=>p.date||p.title).join('、')+'｜讀取到 '+allCells.length+' 個班別人員位置。';
-  alert('Excel 班表成品匯入完成，共 '+pages.length+' 天，可切換日期瀏覽及提出修改。原有完整備份的人員、技能及設定已保留。');
+  $('xlsxImportStatus').textContent='匯入完成：'+file.name+'｜本次新增 '+addedPages.length+' 天，重複略過 '+duplicatePages.length+' 天｜目前累計 '+mergedPages.length+' 天。';
+  alert('Excel 匯入完成！本次新增 '+addedPages.length+' 天，重複日期保留手機原有資料 '+duplicatePages.length+' 天。\n目前累計 '+mergedPages.length+' 天，可切換日期查看及提出修改。');
  }catch(e){$('xlsxImportStatus').textContent='匯入失敗：'+(e.message||String(e));alert(e.message||String(e))}
 }

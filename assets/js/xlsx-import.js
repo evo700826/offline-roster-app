@@ -49,22 +49,26 @@ async function importScheduleXlsx(){
   const prior=snapshot?.data||{};
   const existingPages=Array.isArray(prior.schedule_pages)?prior.schedule_pages:[];
   const pageKey=p=>String(p.date||p.title||'').trim();
-  const existingKeys=new Set(existingPages.map(pageKey));
-  const addedPages=pages.filter(p=>!existingKeys.has(pageKey(p)));
-  const duplicatePages=pages.filter(p=>existingKeys.has(pageKey(p)));
-  const mergedPages=[...existingPages,...addedPages].sort((a,b)=>pageKey(a).localeCompare(pageKey(b)));
+  // 相同日期以本次 Windows Excel 為準完整覆蓋；不同日期保留累加。
+  const existingByKey=new Map(existingPages.map(p=>[pageKey(p),p]));
+  const addedPages=pages.filter(p=>!existingByKey.has(pageKey(p)));
+  const replacedPages=pages.filter(p=>existingByKey.has(pageKey(p)));
+  const mergedByKey=new Map(existingPages.map(p=>[pageKey(p),p]));
+  for(const page of pages)mergedByKey.set(pageKey(page),page);
+  const mergedPages=[...mergedByKey.values()].sort((a,b)=>pageKey(a).localeCompare(pageKey(b)));
   const allCells=mergedPages.flatMap(p=>p.schedule_cells||[]),allPeople=new Set(mergedPages.flatMap(p=>p.people||[]));
   const date=pages[0].date;
   const bytes=new Uint8Array(await file.arrayBuffer()),digest=await crypto.subtle.digest('SHA-256',bytes),revision=[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
   const priorEmployees=Array.isArray(prior.employees)?prior.employees:[];
   const employeeNames=new Set(priorEmployees.map(x=>typeof x==='string'?x:x?.name).filter(Boolean));
   const employees=[...priorEmployees,...[...allPeople].filter(name=>!employeeNames.has(name)).map(name=>({emp_id:'',name,status:'在職'}))];
-  const activeKey=addedPages.length?pageKey(addedPages[0]):String(prior.active_schedule_date||mergedPages[0]?.date||'');
-  const activePage=mergedPages.find(p=>pageKey(p)===activeKey)||mergedPages[0];
+  // 匯入後直接顯示本次檔案第一個工作表。
+  const activeKey=pageKey(pages[0]);
+  const activePage=mergedPages.find(p=>pageKey(p)===activeKey)||pages[0];
   const data={...prior,employees,sheet_matrix:activePage?.sheet_matrix||pages[0].sheet_matrix,schedule_pages:mergedPages,active_schedule_date:activePage?.date||'',schedule_cells:allCells,schedule_entries:allCells,backup_info:{...(prior.backup_info||{}),source:'Windows XLSX 班表成品',xlsx_filename:file.name,roster_date:date,schedule_dates:mergedPages.map(p=>p.date||p.title),xlsx_import_files:[...(prior.backup_info?.xlsx_import_files||[]),file.name]}};
   const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('xlsx-'+Date.now()),base_revision:revision,data,created_at:new Date().toISOString(),source:'windows-xlsx-product'};
   validateSnapshotData(snap);if(!(await persistXlsxSnapshot(snap)))throw Error('手機儲存失敗；請保持頁面開啟，不要重新匯入。');
-  $('xlsxImportStatus').textContent='匯入完成：'+file.name+'｜本次新增 '+addedPages.length+' 天，重複略過 '+duplicatePages.length+' 天｜目前累計 '+mergedPages.length+' 天。';
-  alert('Excel 匯入完成！本次新增 '+addedPages.length+' 天，重複日期保留手機原有資料 '+duplicatePages.length+' 天。\n目前累計 '+mergedPages.length+' 天，可切換日期查看及提出修改。');
+  $('xlsxImportStatus').textContent='匯入完成：'+file.name+'｜本次新增 '+addedPages.length+' 天，覆蓋更新 '+replacedPages.length+' 天｜目前累計 '+mergedPages.length+' 天。';
+  alert('Excel 匯入完成！本次新增 '+addedPages.length+' 天，相同日期已由新檔完整取代 '+replacedPages.length+' 天。\n目前累計 '+mergedPages.length+' 天，可切換日期查看及提出修改。');
  }catch(e){$('xlsxImportStatus').textContent='匯入失敗：'+(e.message||String(e));alert(e.message||String(e))}
 }

@@ -1,5 +1,5 @@
 /* 手機匯入：支援既有手機快照 ZIP，以及 Windows 原始完整備份 ZIP。 */
-function acceptSnapshot(snap){validateSnapshotData(snap);snapshot=snap;baseRevision=snap.base_revision;addHistory(snap);persist()}
+async function acceptSnapshot(snap){validateSnapshotData(snap);snapshot=snap;baseRevision=snap.base_revision;addHistory(snap);if(!(await persist()))throw Error('班表尚未成功保存到手機；請保持此頁開啟。')}
 let sqlJsLoadPromise=null;
 function loadSqlJsLibrary(){
   if(window.initSqlJs)return Promise.resolve(window.initSqlJs);
@@ -92,7 +92,7 @@ async function importSnapshotFile(){
       let manifest;try{manifest=JSON.parse(new TextDecoder().decode(entries['manifest.json']))}catch(_){throw Error('Windows 完整備份 manifest.json 格式錯誤')}
       if(manifest.format!=='roster-local-backup'||Number(manifest.version)!==1)throw Error('這不是支援的 Windows 完整備份格式');
       const converted=await convertWindowsFullBackup(entries,manifest);
-      acceptSnapshot(converted.snap);
+      await acceptSnapshot(converted.snap);
       const q=converted.counts;
       let note='已讀取 Windows 完整備份：人員 '+q.employees+' 人、技能 '+q.skills+' 筆、預定休假 '+q.leaves+' 筆、固定區段 '+q.fixed+' 筆、輪休明細 '+q.rotation+' 人。';
       if(q.scheduleHistory===0)note+='\n注意：此備份沒有正式班表歷史資料；手機已還原完整 16×37 班表矩陣，共 '+q.sheetCells+' 個儲存格（含空白位置）；日期 '+(q.rosterDate||'未取得')+'。';
@@ -107,6 +107,6 @@ async function importSnapshotFile(){
     const manifest=JSON.parse(new TextDecoder().decode(manifestBytes));
     const digest=await crypto.subtle.digest('SHA-256',data),hex=[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
     if(manifest.package!=='roster-phone-transfer'||![1,2].includes(manifest.package_version)||manifest.kind!=='snapshot'||(manifest.package_version===2&&manifest.payload_file!=='roster_snapshot.json')||manifest.exchange_id!==snap.exchange_id||manifest.base_revision!==snap.base_revision||manifest.sha256!==hex)throw Error('資料包清單或 SHA-256 驗證失敗');
-    acceptSnapshot(snap);$('fileImportStatus').textContent='匯入成功：'+normalizeRecords(snap.data).length+' 格，版本 '+snap.base_revision.slice(0,16);alert('Windows 班表快照匯入成功。');
+    await acceptSnapshot(snap);$('fileImportStatus').textContent='匯入成功：'+normalizeRecords(snap.data).length+' 格，版本 '+snap.base_revision.slice(0,16);alert('Windows 班表快照匯入成功。');
   }catch(e){$('fileImportStatus').textContent='匯入失敗：'+e.message;alert(e.message)}
 }

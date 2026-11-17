@@ -23,6 +23,7 @@ function switchXlsxPage(value){
  const dateEl=$('editDate');if(dateEl)dateEl.value='';
  persist();
 }
+async function persistXlsxSnapshot(snap){snapshot=snap;baseRevision=snap.base_revision;addHistory(snap);return await persist()}
 async function importScheduleXlsx(){
  try{
   const file=$('scheduleXlsxFile')?.files?.[0];if(!file)throw Error('請先選擇 Windows 輸出的 .xlsx 班表成品');
@@ -62,7 +63,7 @@ async function importScheduleXlsx(){
   const activePage=mergedPages.find(p=>pageKey(p)===activeKey)||mergedPages[0];
   const data={...prior,employees,sheet_matrix:activePage?.sheet_matrix||pages[0].sheet_matrix,schedule_pages:mergedPages,active_schedule_date:activePage?.date||'',schedule_cells:allCells,schedule_entries:allCells,backup_info:{...(prior.backup_info||{}),source:'Windows XLSX 班表成品',xlsx_filename:file.name,roster_date:date,schedule_dates:mergedPages.map(p=>p.date||p.title),xlsx_import_files:[...(prior.backup_info?.xlsx_import_files||[]),file.name]}};
   const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('xlsx-'+Date.now()),base_revision:revision,data,created_at:new Date().toISOString(),source:'windows-xlsx-product'};
-  validateSnapshotData(snap);acceptSnapshot(snap);
+  validateSnapshotData(snap);if(!(await persistXlsxSnapshot(snap)))throw Error('手機儲存失敗；請保持頁面開啟，不要重新匯入。');
   $('xlsxImportStatus').textContent='匯入完成：'+file.name+'｜本次新增 '+addedPages.length+' 天，重複略過 '+duplicatePages.length+' 天｜目前累計 '+mergedPages.length+' 天。';
   alert('Excel 匯入完成！本次新增 '+addedPages.length+' 天，重複日期保留手機原有資料 '+duplicatePages.length+' 天。\n目前累計 '+mergedPages.length+' 天，可切換日期查看及提出修改。');
  }catch(e){$('xlsxImportStatus').textContent='匯入失敗：'+(e.message||String(e));alert(e.message||String(e))}

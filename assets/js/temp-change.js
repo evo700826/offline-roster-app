@@ -14,7 +14,9 @@ function dateAssigned(records,date){return records.filter(x=>x.date===date&&norm
 function isRestOrLeaveType(t){return /(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假|休)/.test(t||'')}
 function eligibleNewNames(ctx,date){
  const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
- const clean=values=>[...new Set(values.map(normName).filter(Boolean))].filter(n=>!assigned.has(n)).sort((x,y)=>x.localeCompare(y,'zh-Hant'));
+ // 預定休假、病假及其他明確請假紀錄優先於輪休候選名單，不得被選為新增出勤人員。
+ const leaveNames=new Set(restRecordsFor(ctx.data,date).map(x=>normName(x.name)).filter(Boolean));
+ const clean=values=>[...new Set(values.map(normName).filter(Boolean))].filter(n=>!assigned.has(n)&&!leaveNames.has(n)).sort((x,y)=>x.localeCompare(y,'zh-Hant'));
  // 優先讀完整矩陣第13列 B:U；若該列在匯入快照中為空，不可直接回傳空清單。
  const matrix=ctx.data?.sheet_matrix?.cells;
  let names=Array.isArray(matrix)?matrix.filter(x=>Number(x.row)===13&&Number(x.col)>=2&&Number(x.col)<=21).map(x=>x.value):[];

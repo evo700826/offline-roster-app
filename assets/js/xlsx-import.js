@@ -53,6 +53,6 @@ async function importScheduleXlsx(){
   const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('xlsx-'+Date.now()),base_revision:revision,data,created_at:new Date().toISOString(),source:'windows-xlsx-product'};
   validateSnapshotData(snap);acceptSnapshot(snap);
   $('xlsxImportStatus').textContent='匯入成功：'+file.name+'｜共 '+pages.length+' 天｜日期 '+pages.map(p=>p.date||p.title).join('、')+'｜讀取到 '+allCells.length+' 個班別人員位置。';
-  alert('Excel 班表成品匯入完成，共 pages.length 天，可切換日期瀏覽及提出修改。原有完整備份的人員、技能及設定已保留。');
+  alert('Excel 班表成品匯入完成，共 '+pages.length+' 天，可切換日期瀏覽及提出修改。原有完整備份的人員、技能及設定已保留。');
  }catch(e){$('xlsxImportStatus').textContent='匯入失敗：'+(e.message||String(e));alert(e.message||String(e))}
 }

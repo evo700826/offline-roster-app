@@ -52,7 +52,7 @@ async function importScheduleXlsx(){
   const data={...prior,employees,sheet_matrix:pages[0].sheet_matrix,schedule_pages:pages,active_schedule_date:pages[0].date,schedule_cells:allCells,schedule_entries:allCells,backup_info:{...(prior.backup_info||{}),source:'Windows XLSX 班表成品',xlsx_filename:file.name,roster_date:date,schedule_dates:pages.map(p=>p.date)}};
   const snap={protocol:PROTOCOL,kind:'snapshot',exchange_id:crypto.randomUUID?crypto.randomUUID():('xlsx-'+Date.now()),base_revision:revision,data,created_at:new Date().toISOString(),source:'windows-xlsx-product'};
   validateSnapshotData(snap);acceptSnapshot(snap);
-  $('xlsxImportStatus').textContent='匯入成功：'+file.name+'｜完整 多日班表｜班表日期 '+(date||'未能辨識')+'｜讀取到 '+allCells.length+' 個班別人員位置。';
-  alert('Excel 班表成品匯入完成，可在手機瀏覽及提出修改。原有完整備份的人員、技能及設定已保留。');
+  $('xlsxImportStatus').textContent='匯入成功：'+file.name+'｜共 '+pages.length+' 天｜日期 '+pages.map(p=>p.date||p.title).join('、')+'｜讀取到 '+allCells.length+' 個班別人員位置。';
+  alert('Excel 班表成品匯入完成，共 pages.length 天，可切換日期瀏覽及提出修改。原有完整備份的人員、技能及設定已保留。');
  }catch(e){$('xlsxImportStatus').textContent='匯入失敗：'+(e.message||String(e));alert(e.message||String(e))}
 }

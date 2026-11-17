@@ -7,7 +7,7 @@ function xlsxMatrixFromSheet(zip, sheetPath){
  const sheet=readXml(sheetPath);if(!sheet)throw Error('無法讀取工作表：'+sheetPath);
  const sharedDoc=readXml('xl/sharedStrings.xml'),shared=sharedDoc?xlsxTextNodes(sharedDoc,'si').map(si=>xlsxTextNodes(si,'t').map(t=>t.textContent).join('')):[];
  const matrix=new Map();
- for(const c of xlsxTextNodes(sheet,'c')){const ref=c.getAttribute('r');if(!ref)continue;const m=ref.match(/([A-Z]+)(\\d+)/i);if(!m)continue;const row=Number(m[2]),col=xlsxColNumber(ref);let value='';const type=c.getAttribute('t'),v=xlsxTextNodes(c,'v')[0];if(type==='s'&&v)value=shared[Number(v.textContent)]??'';else if(type==='inlineStr')value=xlsxTextNodes(c,'t').map(t=>t.textContent).join('');else if(v)value=v.textContent;matrix.set(row+'|'+col,String(value).trim())}
+ for(const c of xlsxTextNodes(sheet,'c')){const ref=c.getAttribute('r');if(!ref)continue;const m=ref.match(/([A-Z]+)(\d+)/i);if(!m)continue;const row=Number(m[2]),col=xlsxColNumber(ref);let value='';const type=c.getAttribute('t'),v=xlsxTextNodes(c,'v')[0];if(type==='s'&&v)value=shared[Number(v.textContent)]??'';else if(type==='inlineStr')value=xlsxTextNodes(c,'t').map(t=>t.textContent).join('');else if(v)value=v.textContent;matrix.set(row+'|'+col,String(value).trim())}
  if(!matrix.size)throw Error('Excel 工作表沒有可讀取的儲存格資料');return matrix;
 }
 function xlsxBuildPage(matrix,title){

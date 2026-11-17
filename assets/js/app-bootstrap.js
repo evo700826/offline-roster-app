@@ -78,9 +78,9 @@ function bindAppEvents(){
     }catch(e){stopCameraScan();alert(e.message||String(e));}
   };
 }
-function startApp(){
+async function startApp(){
   bindAppEvents();
-  restore();
+  await restore();
   if($('emailRecipient'))$('emailRecipient').value=getEmailRecipient();
   setScheduleRange(10);
   renderAll();

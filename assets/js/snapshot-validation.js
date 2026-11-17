@@ -59,7 +59,7 @@ function validateReturnAgainstSnapshot(payload, sourceSnapshot){
       let record=records.find(r=>r.key===change.cell_key);
       if(!record){
         const ref=String(change.cell_ref||change.excel_cell||change.cell_key).toUpperCase();
-        record=records.find(r=>String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===ref);
+        record=records.find(r=>r.date===proposal.date&&String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===ref);
       }
       if(!record)throw Error(`原始快照找不到異動位置：${change.cell_key}；請重新匯入最新快照`);
       const current=String(record.name??'').trim(), expected=String(change.old_name??'').trim();
@@ -67,7 +67,7 @@ function validateReturnAgainstSnapshot(payload, sourceSnapshot){
     }
     for(let ri=0;ri<(proposal.rest_changes||[]).length;ri++){
       const change=proposal.rest_changes[ri], ref=String(change.cell_ref||change.excel_cell).toUpperCase();
-      const record=records.find(r=>String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===ref);
+      const record=records.find(r=>r.date===proposal.date&&String(r.meta?.cell_ref||r.meta?.cell_key||r.meta?.excel_cell||'').toUpperCase()===ref);
       if(!record)throw Error(`原始快照找不到輪休位置：${ref}；請重新匯入最新快照`);
       const current=String(record.name??'').trim(), expected=String(change.old_name??'').trim();
       if(current!==expected)throw Error(`輪休修改前值不符：${ref} 原快照為「${current||'（空白）'}」，提案記錄為「${expected||'（空白）'}」`);

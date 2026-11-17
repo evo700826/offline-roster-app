@@ -1,56 +1,10 @@
-/* 本機資料儲存模組
- * 職責：集中管理班表快照、待回傳提案與歷史資料的本機保存、載入、舊版遷移及清除。
- * 不負責畫面更新，也不直接修改主程式狀態。
- */
-(function(){
-  'use strict';
-  const LEGACY_KEYS=['roster_phone_177'];
-  const VERSION=1;
-  function parse(raw){
-    if(!raw)return null;
-    const value=JSON.parse(raw);
-    if(!value || typeof value!=='object' || Array.isArray(value))return null;
-    return {
-      snapshot:value.snapshot||null,
-      baseRevision:typeof value.baseRevision==='string'?value.baseRevision:'',
-      proposals:Array.isArray(value.proposals)?value.proposals:[],
-      historyItems:Array.isArray(value.historyItems)?value.historyItems:[]
-    };
-  }
-  function load(primaryKey,extraKeys=[]){
-    const keys=[primaryKey,...extraKeys,...LEGACY_KEYS].filter((x,i,a)=>x&&a.indexOf(x)===i);
-    for(const key of keys){
-      try{
-        const result=parse(localStorage.getItem(key));
-        if(result){
-          if(key!==primaryKey){
-            try{localStorage.setItem(primaryKey,JSON.stringify(result));}catch(e){}
-          }
-          return result;
-        }
-      }catch(e){}
-    }
-    return null;
-  }
-  function save(key,state){
-    if(!key)throw new Error('缺少本機資料儲存識別碼');
-    const payload={
-      storage_version:VERSION,
-      snapshot:state.snapshot||null,
-      baseRevision:state.baseRevision||'',
-      proposals:Array.isArray(state.proposals)?state.proposals:[],
-      historyItems:Array.isArray(state.historyItems)?state.historyItems:[]
-    };
-    const serialized=JSON.stringify(payload);
-    // 寫入後立即回讀驗證，避免只更新記憶體卻未真正保存。
-    localStorage.setItem(key,serialized);
-    const check=localStorage.getItem(key);
-    if(check!==serialized)throw new Error('本機資料寫入驗證失敗');
-    return true;
-  }
-  function clear(key,extraKeys=[]){
-    [key,...extraKeys,...LEGACY_KEYS].filter((x,i,a)=>x&&a.indexOf(x)===i)
-      .forEach(k=>localStorage.removeItem(k));
-  }
-  window.RosterStorage=Object.freeze({load,save,clear,version:VERSION});
-})();
+/* IndexedDB 本機資料儲存，舊 localStorage 資料首次開啟時自動遷移。 */
+(function(){'use strict';const DB='roster-phone-db',STORE='app_state',LEGACY=['roster_phone_185','roster_phone_177'];let opening;
+function db(){if(!opening)opening=new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}).catch(e=>{opening=null;throw e});return opening}
+async function get(k){const d=await db();return new Promise((ok,no)=>{const t=d.transaction(STORE),r=t.objectStore(STORE).get(k);r.onsuccess=()=>ok(r.result||null);r.onerror=()=>no(r.error)})}
+async function put(k,v){const d=await db();return new Promise((ok,no)=>{const t=d.transaction(STORE,'readwrite');t.objectStore(STORE).put(v,k);t.oncomplete=()=>ok(true);t.onerror=()=>no(t.error);t.onabort=()=>no(t.error)})}
+function parse(s){if(!s)return null;const v=JSON.parse(s);return v&&typeof v==='object'?{snapshot:v.snapshot||null,baseRevision:v.baseRevision||'',proposals:Array.isArray(v.proposals)?v.proposals:[],historyItems:Array.isArray(v.historyItems)?v.historyItems:[]}:null}
+async function load(k,extra=[]){for(const key of [k,...extra,...LEGACY].filter((x,i,a)=>x&&a.indexOf(x)===i)){try{const v=await get(key);if(v)return v}catch(e){console.warn(e)}}for(const key of [k,...extra,...LEGACY]){try{const v=parse(localStorage.getItem(key));if(v){await put(k,v);[k,...extra,...LEGACY].forEach(x=>{try{localStorage.removeItem(x)}catch(_){}});return v}}catch(e){console.warn('舊資料遷移失敗',e)}}return null}
+async function save(k,s){const v={storage_version:2,snapshot:s.snapshot||null,baseRevision:s.baseRevision||'',proposals:s.proposals||[],historyItems:s.historyItems||[]};try{await put(k,v);const q=await get(k);if(!q||q.storage_version!==2)throw Error('寫入驗證失敗');return true}catch(e){if(e.name==='QuotaExceededError')throw Error('iPhone 可用儲存空間不足，請先匯出回傳資料並釋出裝置空間');throw e}}
+async function clear(k,extra=[]){const d=await db();await new Promise((ok,no)=>{const t=d.transaction(STORE,'readwrite'),o=t.objectStore(STORE);[k,...extra,...LEGACY].forEach(x=>o.delete(x));t.oncomplete=ok;t.onerror=()=>no(t.error)});[k,...extra,...LEGACY].forEach(x=>{try{localStorage.removeItem(x)}catch(_){}})}
+window.RosterStorage=Object.freeze({load,save,clear,version:2});})();

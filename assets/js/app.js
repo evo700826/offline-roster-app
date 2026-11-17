@@ -3,8 +3,8 @@ const EXCEL_TEMPLATE = window.EXCEL_TEMPLATE;
 const $=id=>document.getElementById(id), PROTOCOL='roster-offline-qr-v1', STORE='roster_phone_185';
 let snapshot=null,baseRevision='',proposals=[],parts={},chunkMeta=null,stream=null,historyItems=[];
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function persist(){try{RosterStorage.save(STORE,{snapshot,baseRevision,proposals,historyItems});renderAll()}catch(e){alert('手機資料保存失敗：'+(e.message||'儲存空間不足')+'。請先回傳待確認修改，並保留目前資料。')}}
-function restore(){let x=RosterStorage.load(STORE);if(x){snapshot=x.snapshot;baseRevision=x.baseRevision;proposals=x.proposals;historyItems=x.historyItems;if(snapshot)addHistory(snapshot);}}
+async function persist(){try{await RosterStorage.save(STORE,{snapshot,baseRevision,proposals,historyItems});renderAll();return true}catch(e){alert('手機資料保存失敗：'+(e.message||'儲存空間不足')+'。目前畫面資料仍保留，請勿關閉網頁。');return false}}
+async function restore(){let x=await RosterStorage.load(STORE);if(x){snapshot=x.snapshot;baseRevision=x.baseRevision;proposals=x.proposals;historyItems=x.historyItems;if(snapshot)addHistory(snapshot);}}
 function renderXlsxPagePicker(){const box=$('xlsxPagePicker'),select=$('xlsxPageSelect'),pages=snapshot?.data?.schedule_pages||[];if(!box||!select)return;box.classList.toggle('hidden',pages.length<2);if(pages.length){select.innerHTML=pages.map(p=>`<option value="${esc(p.date||p.title)}" ${p.date===(snapshot.data.active_schedule_date||pages[0].date)?'selected':''}>${esc(p.date||p.title)}</option>`).join('');}}
 function setScheduleRange(days){let today=new Date(),end=new Date(today);end.setDate(end.getDate()+days-1);$('scheduleFrom').value=today.toISOString().slice(0,10);$('scheduleTo').value=end.toISOString().slice(0,10);renderScheduleGrid()}
 function templateCurrentValue(coord,sourceData=snapshot?.data){

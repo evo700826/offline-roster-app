@@ -14,6 +14,14 @@ function dateAssigned(records,date){return records.filter(x=>x.date===date&&norm
 function isRestOrLeaveType(t){return /(輪休|休假|病假|事假|公假|特休|補休|婚假|喪假|休)/.test(t||'')}
 function eligibleNewNames(ctx,date){
  const assigned=new Set(dateAssigned(ctx.records,date).map(x=>normName(x.name)));
+ // 以所選日期的完整 Excel 矩陣再次核對已排班人員，避免因紀錄轉換漏列而把在班人員列為新增候選。
+ const page=(ctx.data?.schedule_pages||[]).find(p=>String(p.date||'').slice(0,10)===date);
+ const matrixCells=page?.sheet_matrix?.cells||ctx.data?.sheet_matrix?.cells||[];
+ for(const cell of matrixCells){
+  if([3,5,7,9,11].includes(Number(cell.row))&&Number(cell.col)>=2&&Number(cell.col)<=37){
+   const name=normName(cell.value);if(name)assigned.add(name);
+  }
+ }
  // 電腦版規則：新增人員可來自當日輪休列「或」當日明確休假紀錄；兩者取聯集。
  const leaveNames=restRecordsFor(ctx.data,date).map(x=>normName(x.name)).filter(Boolean);
  const clean=values=>[...new Set(values.map(normName).filter(Boolean))].filter(n=>!assigned.has(n)).sort((x,y)=>x.localeCompare(y,'zh-Hant'));

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#244d36"><title>自動排班系統｜手機班表版 v0.5.256</title>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#244d36"><title>自動排班系統｜手機班表版 v0.5.257</title>
 <link rel="stylesheet" href="./assets/css/app.css"><link rel="manifest" href="./manifest.webmanifest"></head><body>
 <header><b>自動排班系統｜手機班表版 <span style="font-size:.72em;font-weight:600;white-space:nowrap">林邵賢製作</span></b><small>v0.5.256・模組化架構版・離線 QR／Email</small></header>
 <main>
@@ -7,7 +7,7 @@
 <div class="tabs"><button class="active" data-tab="schedule">班表預覽</button><button data-tab="tempchange">臨時異動人員</button><button data-tab="history">歷史班表</button><button data-tab="exchange">資料交換</button></div>
 
 <section id="schedule" class="pane active">
- <div class="card"><div class="schedule-head"><div><h2>原始 Excel 班表預覽／修改</h2><div class="muted">直接依照你最新上傳的格式1(2).xlsx 重建，保留合併儲存格、欄寬列高及儲存格樣式。此畫面以原始班表作為異動前預覽；人員異動請使用「臨時異動人員」，依電腦版連鎖最少調整規則計算。</div></div><span class="badge">格式1(2)｜16列×37欄</span></div><div class="sheet-zoom-controls"><button class="alt" type="button" onclick="changeSheetZoom(-0.15)">－ 縮小</button><button class="alt" type="button" onclick="changeSheetZoom(0.15)">＋ 放大</button><button type="button" onclick="resetSheetZoom()">適合框架</button><span id="sheetZoomLabel">100%</span></div><div class="sheet-scroll" id="sheetScroll"><table class="excel-sheet" id="excelSheet"></table></div><div class="muted" id="sheetStatus">格式範本已載入；匯入 Windows 班表後可疊加實際人員資料。</div></div>
+ <div class="card"><div class="schedule-head"><div><h2>原始 Excel 班表預覽／修改</h2><div class="muted">直接依照你最新上傳的格式1(2).xlsx 重建，保留合併儲存格、欄寬列高及儲存格樣式。此畫面以原始班表作為異動前預覽；人員異動請使用「臨時異動人員」，依電腦版連鎖最少調整規則計算。</div></div><span class="badge">格式1(2)｜16列×37欄</span></div><div id="xlsxPagePicker" class="actions hidden"><label for="xlsxPageSelect">選擇班表日期</label><select id="xlsxPageSelect" onchange="switchXlsxPage(this.value)"></select></div><div class="sheet-zoom-controls"><button class="alt" type="button" onclick="changeSheetZoom(-0.15)">－ 縮小</button><button class="alt" type="button" onclick="changeSheetZoom(0.15)">＋ 放大</button><button type="button" onclick="resetSheetZoom()">適合框架</button><span id="sheetZoomLabel">100%</span></div><div class="sheet-scroll" id="sheetScroll"><table class="excel-sheet" id="excelSheet"></table></div><div class="muted" id="sheetStatus">格式範本已載入；匯入 Windows 班表後可疊加實際人員資料。</div></div>
 
  <div class="card">
   <div class="schedule-head"><div><h2>匯入資料檢視</h2><div id="status" class="muted">尚未載入 Windows 班表</div><div id="changeSummary" class="muted">待確認班表修改 0 筆</div><div class="muted">可預覽匯入班表，查看匯入班表。正式異動請使用「臨時異動人員」流程。</div></div><span class="badge" id="scheduleState">尚未載入班表</span></div>

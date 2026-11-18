@@ -9,4 +9,18 @@
 .history-sheet-scroll{height:64svh;min-height:360px;max-height:760px;overflow:hidden;position:relative;background:#fff;border:1px solid #aeb9b0;border-radius:8px;margin-top:10px}
 .history-sheet-scroll .excel-sheet{pointer-events:none}
 
-/* 手機人員／技能頁：隱藏下方獨立人員名單卡，只保留技能查閱；技能列大幅收緊。 */#people>.card:nth-child(2){display:none!important}.skill-task-list{display:grid;gap:2px}.skill-task-row{display:grid;grid-template-columns:minmax(64px,22%) 1fr;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}.skill-task-row label{font-weight:800;margin:0;font-size:14px}.skill-task-row select{width:100%;min-width:0;margin:0;padding:7px 10px;font-size:13px;line-height:1.25}.skill-task-row select option{font-size:13px}
+/* 手機人員／技能頁：分類側欄、緊湊技能清單；人員名單卡確實隱藏。 */
+#people>.card:nth-child(2){display:none!important}
+#people .card{padding:10px;margin:7px 0}
+#people .card h2,#people .card>p{display:none}
+.skill-task-list{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;align-items:start}
+.skill-side-tabs{display:flex;flex-direction:column;gap:5px;position:sticky;top:115px}
+.skill-side-tab{width:100%;margin:0;padding:10px 4px;border-radius:9px;background:#dce6dc;color:#294431;font-size:14px;font-weight:800}
+.skill-side-tab.active{background:var(--green);color:#fff}
+.skill-category-content{min-width:0}
+.skill-task-row{display:grid;grid-template-columns:minmax(54px,24%) minmax(0,1fr);align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--line)}
+.skill-task-row label{font-weight:800;margin:0;font-size:13px;line-height:1.2}
+.skill-task-row select{width:100%;min-width:0;margin:0;padding:6px 8px;font-size:13px;line-height:1.2}
+.skill-task-row select option{font-size:13px}
+.skill-empty{padding:12px;color:var(--muted);font-size:13px}
+@media(max-width:390px){.skill-task-list{grid-template-columns:54px minmax(0,1fr)}.skill-side-tab{font-size:13px;padding:9px 2px}.skill-task-row{grid-template-columns:minmax(48px,23%) minmax(0,1fr)}}

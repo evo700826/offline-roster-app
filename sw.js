@@ -1,4 +1,4 @@
-const CACHE='roster-phone-v0.5.279';
+const CACHE='roster-phone-v0.5.280';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./assets/css/app.css','./assets/js/qr.js','./assets/js/jsQR.js','./assets/js/excel-template.js','./assets/js/temp-change.js','./assets/js/zip-package.js','./assets/js/data-exchange.js','./assets/js/snapshot-validation.js','./assets/js/snapshot-import.js','./assets/js/xlsx-import.js','./assets/js/qr-receiver.js','./assets/js/qr-sender.js','./assets/js/email-transfer.js','./assets/js/history.js','./assets/js/storage.js','./assets/js/roster-data.js','./assets/js/people-skills.js','./assets/js/proposal-manager.js','./assets/js/cell-editor.js','./assets/js/app-bootstrap.js','./assets/js/schedule-view.js','./assets/js/app.js','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

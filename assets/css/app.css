@@ -15,7 +15,7 @@
 #people .card h2,#people .card>p{display:none}
 .skill-task-list{display:grid;grid-template-columns:48px minmax(0,1fr);gap:7px;align-items:start}
 .skill-side-tabs{display:flex;flex-direction:column;align-items:flex-start;gap:7px;position:sticky;top:115px;margin-left:-5px}
-.skill-side-tab{display:flex;align-items:center;justify-content:center;width:40px;height:112px;min-height:112px;margin:0;padding:8px 2px;border:1px solid #cbd9ce;border-radius:11px;background:#dce6dc;color:#294431;font-size:14px;font-weight:800;line-height:1.2;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;box-shadow:0 1px 2px #193b2412}
+.skill-side-tab{display:flex;align-items:center;justify-content:center;width:46px;height:72px;min-height:72px;margin:0;padding:8px 2px;border:1px solid #cbd9ce;border-radius:11px;background:#dce6dc;color:#294431;font-size:14px;font-weight:800;line-height:1.2;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;box-shadow:0 1px 2px #193b2412}
 .skill-side-tab.active{background:var(--green);border-color:var(--green);color:#fff}
 .skill-category-content{min-width:0}
 .skill-task-row{display:grid;grid-template-columns:minmax(54px,24%) minmax(0,1fr);align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--line)}
@@ -23,4 +23,4 @@
 .skill-task-row select{width:100%;min-width:0;margin:0;padding:6px 8px;font-size:13px;line-height:1.2}
 .skill-task-row select option{font-size:13px}
 .skill-empty{padding:12px;color:var(--muted);font-size:13px}
-@media(max-width:390px){.skill-task-list{grid-template-columns:45px minmax(0,1fr);gap:6px}.skill-side-tabs{margin-left:-6px;gap:6px}.skill-side-tab{width:38px;height:104px;min-height:104px;font-size:13px;padding:7px 1px;border-radius:10px}.skill-task-row{grid-template-columns:minmax(48px,23%) minmax(0,1fr)}}
+@media(max-width:390px){.skill-task-list{grid-template-columns:45px minmax(0,1fr);gap:6px}.skill-side-tabs{margin-left:-6px;gap:6px}.skill-side-tab{width:44px;height:68px;min-height:68px;font-size:13px;padding:7px 1px;border-radius:10px}.skill-task-row{grid-template-columns:minmax(48px,23%) minmax(0,1fr)}}

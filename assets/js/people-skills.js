@@ -23,8 +23,8 @@ function normalizedSkillRows(){
 }
 function skillCategory(task){
  const t=String(task||'').trim();
- if(/^市(?:[1-9]|[12]\\d|3[0-8])$/.test(t))return '市';
- if(/^村(?:[1-9]|[12]\\d|3[0-4])$/.test(t))return '村';
+ if(/^市(?:[1-9]|[12]\d|3[0-8])$/.test(t))return '市';
+ if(/^村(?:[1-9]|[12]\d|3[0-4])$/.test(t))return '村';
  if(/^包(?:[1-9]|1[0-6])$/.test(t)||/^快早/.test(t)||/^快晚/.test(t))return '包';
  if(/^(?:接|收)/.test(t))return '收';
  if(/^內勤/.test(t))return '內';

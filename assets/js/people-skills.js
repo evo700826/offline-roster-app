@@ -23,11 +23,11 @@ function normalizedSkillRows(){
 }
 function skillCategory(task){
  const t=String(task||'').trim();
- // 依指定範圍精確分類；未列入的技能（包含大宗）一律歸「其他」。
+ // 分類範圍完全依使用者確認：未列入項目一律歸「其他」。
  if(/^市(?:[1-9]|[12]\d|3[0-8])$/.test(t))return '市';
  if(/^村(?:[1-9]|[12]\d|3[0-4])$/.test(t))return '村';
- if(/^包(?:[1-9]|1[0-6])$/.test(t)||t==='快早'||t==='快晚'||t==='早1')return '包';
- if(t==='接'||t==='收'||t==='接早'||t==='接晚')return '收';
+ if(/^包(?:[1-9]|1[0-6])$/.test(t)||/^早[12]$/.test(t)||/^晚[1-8]$/.test(t))return '包';
+ if(/^接[1-7]$/.test(t)||/^收[1-3]$/.test(t)||t==='接早'||t==='接晚')return '收';
  if(/^內勤(?:[1-9]|1[0-3])$/.test(t))return '內';
  return '其他';
 }

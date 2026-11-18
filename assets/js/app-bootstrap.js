@@ -4,6 +4,7 @@ function tab(id){
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));
   if(id==='history')renderHistory();
   if(id==='tempchange')initTempChange();
+  if(id==='people')renderPeoplePanel();
 }
 function bindAppEvents(){
   document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));

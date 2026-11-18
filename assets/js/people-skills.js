@@ -46,7 +46,7 @@ function renderSkillPeople(){
  const list=visible.map((task,ti)=>{
   const people=rows.filter(x=>skillTask(x)===task).sort((x,y)=>skillRank(x)-skillRank(y)||skillName(x).localeCompare(skillName(y),'zh-Hant'));
   const opts=people.map((x,i)=>`<option value="${esc(skillName(x))}">${esc(skillEmployeeLabel(x,i))}</option>`).join('');
-  return `<div class="skill-task-row"><label for="skillTask_${ti}">${esc(task)}</label><select id="skillTask_${ti}" aria-label="${esc(task)}人員名單"><option value="">請選擇（${people.length} 人）</option>${opts}</select></div>`;
+  return `<div class="skill-task-row"><label for="skillTask_${ti}">${esc(task)}</label><select id="skillTask_${ti}" aria-label="${esc(task)}人員名單"><option value="">${esc(task)}（${people.length} 人）</option>${opts}</select></div>`;
  }).join('');
  box.innerHTML=nav+`<div class="skill-category-content">${list||'<div class="skill-empty">此分類目前沒有技能項目</div>'}</div>`;
  box.querySelectorAll('[data-skill-category]').forEach(btn=>btn.addEventListener('click',()=>{activeSkillCategory=btn.dataset.skillCategory;renderSkillPeople()}));

@@ -22,7 +22,7 @@ function normalizedSkillRows(){
  return out.filter(x=>skillTask(x)&&skillName(x));
 }
 function orderedSkillTasks(){return [...new Set(normalizedSkillRows().map(skillTask))].sort((a,b)=>skillGroup(a)-skillGroup(b)||a.localeCompare(b,'zh-Hant',{numeric:true}))}
-function skillEmployeeLabel(x,index){const name=skillName(x),emp=employees().find(e=>(typeof e==='string'?e:e.name)===name);const id=(typeof emp==='object'&&emp?emp.emp_id:'')||x.emp_id||x.employee_id||'';const rank=x.rank??x.priority??x.order??x.sequence??(index+1);return `順位 ${rank}｜${id?String(id)+'　':''}${name}`}
+function skillEmployeeLabel(x,index){const name=skillName(x),emp=employees().find(e=>(typeof e==='string'?e:e.name)===name);const id=(typeof emp==='object'&&emp?emp.emp_id:'')||x.emp_id||x.employee_id||'';const rank=x.rank??x.priority??x.order??x.sequence??(index+1);return `${id?String(id)+'　':''}${name}`}
 function renderSkillOptions(){renderSkillPeople()}
 function renderSkillPeople(){
  const box=$('skillTaskList');if(!box)return;
